@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <filter id="neonGlow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="neonGradient">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+
+  <!-- Neon P with glow effect -->
+  <g filter="url(#neonGlow)">
+    <path d="M 20 12 L 20 52 M 20 12 L 36 12 Q 42 12 42 20 Q 42 26 36 26 L 20 26" 
+          stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"
+          style="filter: drop-shadow(0 0 8px #22c55e) drop-shadow(0 0 4px #16a34a)"/>
+  </g>
+
+  <!-- Extra glow layer for intensity -->
+  <path d="M 20 12 L 20 52 M 20 12 L 36 12 Q 42 12 42 20 Q 42 26 36 26 L 20 26" 
+        stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"
+        opacity="0.6" style="filter: drop-shadow(0 0 12px #22c55e)"/>
+</svg>

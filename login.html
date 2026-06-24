@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>PushPal - Login</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-h: #334155;
+            --accent: #22c55e;
+            --accent-dim: #16a34a;
+            --accent-bg: rgba(34, 197, 94, 0.1);
+            --text-main: #f1f5f9;
+            --text-sec: #cbd5e1;
+            --border: #475569;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        #loginPolygonCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: -1;
+        }
+
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--surface-h);
+            border: 2px solid var(--border);
+            color: var(--accent);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+
+        .back-button:hover {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+            transform: translateX(-4px);
+        }
+
+        .auth-wrapper {
+            width: 100%;
+            max-width: 420px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), #4ade80);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-sec);
+            font-size: 0.9rem;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 40px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--accent);
+            font-size: 1.2rem;
+            user-select: none;
+            padding: 4px 8px;
+            transition: all 0.15s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--accent-dim);
+            transform: scale(1.15);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .auth-btn {
+            flex: 1;
+            background: linear-gradient(135deg, var(--accent), #4ade80);
+            color: var(--bg);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .auth-btn:active {
+            transform: translateY(0);
+        }
+
+        .auth-link {
+            text-align: center;
+            color: var(--text-sec);
+            font-size: 0.9rem;
+            margin-top: 16px;
+        }
+
+        .auth-link span {
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .auth-link span:hover {
+            text-decoration: underline;
+        }
+
+        .hidden-form {
+            display: none;
+        }
+
+        .auth-error {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .auth-error.show {
+            display: block;
+        }
+
+        .auth-success {
+            display: none;
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid #22c55e;
+        }
+
+        .auth-success.show {
+            display: block;
+        }
+
+        .status-message {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--surface-h);
+            color: var(--text-main);
+            padding: 16px 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+            z-index: 100;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-wrapper {
+                padding: 24px;
+            }
+
+            .auth-title {
+                font-size: 1.4rem;
+            }
+
+            .back-button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+                top: 12px;
+                left: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="loginPolygonCanvas"></canvas>
+
+    <button class="back-button" onclick="window.history.back()">← Back to Home</button>
+
+    <div class="login-container">
+        <div class="auth-wrapper">
+            <div class="auth-header">
+                <div class="auth-title">💪 PushPal</div>
+                <div class="auth-subtitle">Track your fitness journey</div>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm" onsubmit="handleLoginEvent(event)">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="username" required>
+                </div>
+                <div class="form-group" style="position: relative;">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password" required>
+                    <span class="password-toggle" onclick="togglePasswordVisibilityUI(this, 'loginPassword')">👁️</span>
+                </div>
+                <div id="loginUsernameError" class="auth-error"></div>
+                <div id="loginPasswordError" class="auth-error"></div>
+                <div class="form-buttons">
+                    <button type="submit" class="auth-btn">Sign In</button>
+                    <button type="button" class="auth-btn" onclick="switchAuthMode('signup')" style="background: linear-gradient(135deg, var(--surface-h), var(--surface)); color: var(--accent); border: 2px solid var(--accent);">Sign Up</button>
+                </div>
+                <div style="text-align: center; margin-top: 12px;">
+                  <span onclick="switchAuthMode('recovery')" style="color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600;">Forgot your password?</span>
+                </div>
+            </form>
+
+            <!-- Signup Form (Hidden) -->
+            <form class="auth-form hidden-form" id="signupForm" onsubmit="handleSignupEvent(event)">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="signupUsername" placeholder="Choose a username" autocomplete="username" required>
+                </div>
+                <div class="form-group" style="position: relative;">
+                    <label>Create Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a password" autocomplete="new-password" required>
+                    <span class="password-toggle" onclick="togglePasswordVisibilityUI(this, 'signupPassword')">👁️</span>
+                </div>
+                <div class="form-group" style="position: relative;">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signupPasswordConfirm" placeholder="Confirm password" autocomplete="new-password" required>
+                    <span class="password-toggle" onclick="togglePasswordVisibilityUI(this, 'signupPasswordConfirm')">👁️</span>
+                </div>
+                <div id="signupUsernameError" class="auth-error"></div>
+                <div id="signupPasswordError" class="auth-error"></div>
+                <div class="form-buttons">
+                    <button type="submit" class="auth-btn">Create Account</button>
+                    <button type="button" class="auth-btn" onclick="switchAuthMode('login')" style="background: linear-gradient(135deg, var(--surface-h), var(--surface)); color: var(--accent); border: 2px solid var(--accent);">Cancel</button>
+                </div>
+            </form>
+            <!-- Password Recovery Form (Hidden) -->
+            <form class="auth-form hidden-form" id="recoveryForm">
+                <div class="auth-subtitle" style="color: var(--text-main); font-size: 1rem; margin-bottom: 16px;">Reset Your Password</div>
+                
+                <!-- Step 1: Enter Username -->
+                <div id="recoveryStep1" style="display: block;">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="recoveryUsername" placeholder="Enter your username" required>
+                    </div>
+                    <div id="recoveryUsernameError" class="auth-error"></div>
+                    <div class="form-buttons">
+                        <button type="button" class="auth-btn" onclick="initiatePasswordRecovery()">Send Recovery Code</button>
+                        <button type="button" class="auth-btn" onclick="switchAuthMode('login')" style="background: linear-gradient(135deg, var(--surface-h), var(--surface)); color: var(--accent); border: 2px solid var(--accent);">Back</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Enter Code -->
+                <div id="recoveryStep2" style="display: none;">
+                    <div style="background: rgba(34, 197, 94, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--accent);">
+                        <div style="color: var(--text-sec); font-size: 0.8rem; margin-bottom: 4px;">Recovery Code Sent</div>
+                        <div style="color: var(--accent); font-weight: 600; font-size: 1.1rem;">Check the message below for your code</div>
+                        <div id="recoveryCodeDisplay" style="margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 4px; font-family: monospace; font-size: 1.2rem; color: #4ade80; text-align: center; font-weight: 700;"></div>
+                    </div>
+                    <div style="background: rgba(255, 193, 7, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #FFD700; color: var(--text-sec); font-size: 0.85rem;">
+                        Code expires in <span id="recoveryTimer" style="color: #FFD700; font-weight: 700;">30:00</span>
+                    </div>
+                    <div class="form-group">
+                        <label>6-Character Code</label>
+                        <input type="text" id="recoveryCode" placeholder="Enter the 6-character code" maxlength="6" required>
+                    </div>
+                    <div id="recoveryCodeError" class="auth-error"></div>
+                    <div class="form-buttons">
+                        <button type="button" class="auth-btn" onclick="verifyRecoveryCode()">Verify Code</button>
+                        <button type="button" class="auth-btn" onclick="cancelRecovery()" style="background: linear-gradient(135deg, var(--surface-h), var(--surface)); color: var(--accent); border: 2px solid var(--accent);">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Reset Password -->
+                <div id="recoveryStep3" style="display: none;">
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" id="recoveryNewPassword" placeholder="Enter new password" required>
+                    </div>
+                    <div class="form-group" style="position: relative;">
+                        <label>Confirm Password</label>
+                        <input type="password" id="recoveryConfirmPassword" placeholder="Confirm new password" required>
+                        <span class="password-toggle" onclick="togglePasswordVisibilityUI(this, 'recoveryConfirmPassword')">👁️</span>
+                    </div>
+                    <div id="recoveryPasswordError" class="auth-error"></div>
+                    <div style="background: var(--accent-bg); padding: 8px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid var(--accent); color: var(--text-sec); font-size: 0.8rem;">
+                        Password must be at least 6 characters
+                    </div>
+                    <div class="form-buttons">
+                        <button type="button" class="auth-btn" onclick="resetPassword()">Reset Password</button>
+                        <button type="button" class="auth-btn" onclick="switchAuthMode('login')" style="background: linear-gradient(135deg, var(--surface-h), var(--surface)); color: var(--accent); border: 2px solid var(--accent);">Back to Login</button>
+                    </div>
+                </div>
+            </form>
+            <div class="auth-success"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'api.php';
+        
+        // Check URL parameter to show signup form if needed, or pre-fill username
+        window.addEventListener('DOMContentLoaded', function() {
+            // Check for auto-login
+            checkAndAutoLogin();
+            
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('mode') === 'signup') {
+                switchAuthMode('signup');
+            }
+            // Pre-fill username if coming from signup
+            const username = params.get('username');
+            if (username) {
+                document.getElementById('loginUsername').value = decodeURIComponent(username);
+                switchAuthMode('login');
+            }
+        });
+
+        function checkAndAutoLogin() {
+            const lastUser = localStorage.getItem('lastLoggedInUser');
+            if (!lastUser) return;
+
+            const autoLoginEnabled = localStorage.getItem(`autoLogin_${lastUser}`);
+            const savedToken = localStorage.getItem(`autoLoginToken_${lastUser}`);
+            const expiry = localStorage.getItem(`autoLoginExpiry_${lastUser}`);
+
+            if (!autoLoginEnabled || !savedToken || !expiry) return;
+
+            const expiryDate = new Date(expiry);
+            if (new Date() > expiryDate) {
+                // Token expired
+                localStorage.removeItem(`autoLogin_${lastUser}`);
+                localStorage.removeItem(`autoLoginToken_${lastUser}`);
+                localStorage.removeItem(`autoLoginExpiry_${lastUser}`);
+                return;
+            }
+
+            // Auto-login with saved token
+            console.log('Auto-logging in as:', lastUser);
+            localStorage.setItem('username', lastUser);
+            localStorage.setItem('userToken', savedToken);
+            localStorage.setItem('questionnaireCompleted', 'true');
+            
+            // Redirect to dashboard
+            window.location.href = 'dashboard.html';
+        }
+        
+        function switchAuthMode(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const recoveryForm = document.getElementById('recoveryForm');
+            
+            if (mode === 'signup') {
+                loginForm.classList.add('hidden-form');
+                signupForm.classList.remove('hidden-form');
+                recoveryForm.classList.add('hidden-form');
+                document.querySelector('.auth-subtitle').textContent = 'Join us on your fitness journey';
+            } else if (mode === 'recovery') {
+                loginForm.classList.add('hidden-form');
+                signupForm.classList.add('hidden-form');
+                recoveryForm.classList.remove('hidden-form');
+                document.querySelector('.auth-subtitle').textContent = 'Reset Your Password';
+            } else {
+                signupForm.classList.add('hidden-form');
+                recoveryForm.classList.add('hidden-form');
+                loginForm.classList.remove('hidden-form');
+                document.querySelector('.auth-subtitle').textContent = 'Track your fitness journey';
+            }
+        }
+
+        function handleLoginEvent(e) {
+            e.preventDefault();
+            handleLogin();
+        }
+
+        function handleSignupEvent(e) {
+            e.preventDefault();
+            handleSignup();
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                showError('loginUsernameError', 'Username and password required');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'login');
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            console.log('Logging in:', username);
+            
+            fetch(apiUrl, { method: 'POST', body: formData })
+                .then(r => {
+                    console.log('Login response status:', r.status);
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    console.log('Login data:', data);
+                    if (data.success) {
+                        localStorage.setItem('username', username);
+                        localStorage.setItem('userToken', data.data.token);
+                        localStorage.setItem('userId', data.data.userId || data.data.token);
+                        localStorage.setItem('questionnaireCompleted', data.data.questionary_completed ? 'true' : 'false');
+                        localStorage.setItem('shouldShowRating', data.data.should_show_rating ? 'true' : 'false');
+                        localStorage.setItem('lastLoggedInUser', username);
+                        
+                        // Trigger browser's credential save dialog (modern browsers)
+                        if (navigator.credentials && navigator.credentials.store) {
+                            const credential = new PasswordCredential({
+                                id: username,
+                                password: password,
+                                name: username
+                            });
+                            navigator.credentials.store(credential).catch(e => console.log('Credential save skipped:', e));
+                        }
+                        
+                        console.log('Login successful, redirecting to dashboard');
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        showError('loginUsernameError', data.message || 'Login failed');
+                    }
+                })
+                .catch(err => {
+                    console.error('Login error:', err);
+                    showError('loginUsernameError', 'Network error. Make sure api.php exists.');
+                });
+        }
+
+        function handleSignup() {
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+            
+            if (!username || !password) {
+                showError('signupUsernameError', 'Username and password required');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showError('signupPasswordError', 'Passwords do not match');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('signupPasswordError', 'Password must be at least 6 characters');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'signup');
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            console.log('Creating account for:', username);
+            
+            fetch(apiUrl, { method: 'POST', body: formData })
+                .then(r => {
+                    console.log('Signup response status:', r.status);
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    console.log('Signup data:', data);
+                    if (data.success) {
+                        localStorage.setItem('username', username);
+                        localStorage.setItem('userToken', data.data.token || '');
+                        localStorage.setItem('userId', data.data.userId || '');
+                        localStorage.setItem('questionnaireCompleted', 'false');
+                        localStorage.setItem('memberSince', new Date().toLocaleDateString());
+                        localStorage.setItem('memberSinceTime', new Date().toISOString());
+                        
+                        // Auto-fill login form without showing error messages
+                        document.getElementById('loginUsername').value = username;
+                        document.getElementById('loginPassword').value = password;
+                        
+                        // Show success message and auto-switch to login mode
+                        showSuccess('authSuccess', 'Account created! Auto-filling login...');
+                        setTimeout(() => {
+                            switchAuthMode('login');
+                            // Auto-submit login form after account creation
+                            setTimeout(() => {
+                                handleLogin();
+                            }, 500);
+                        }, 1200);
+                    } else {
+                        showError('signupUsernameError', data.message || 'Signup failed');
+                    }
+                })
+                .catch(err => {
+                    console.error('Signup error:', err);
+                    showError('signupUsernameError', 'Network error. Make sure api.php exists.');
+                });
+        }
+
+        function showError(elementId, message) {
+            document.getElementById(elementId).textContent = message;
+            document.getElementById(elementId).classList.add('show');
+        }
+
+        function showSuccess(elementId, message) {
+            const elem = document.getElementById(elementId);
+            elem.textContent = message;
+            elem.classList.add('show');
+        }
+
+        function togglePasswordVisibilityUI(element, inputId) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                element.textContent = '👁️‍🗨️';
+            } else {
+                input.type = 'password';
+                element.textContent = '👁️';
+            }
+        }
+
+        // PASSWORD RECOVERY FUNCTIONS
+        let recoveryData = null;
+        let recoveryTimerInterval = null;
+
+        function generateRecoveryCode() {
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function initiatePasswordRecovery() {
+            const username = document.getElementById('recoveryUsername').value.trim();
+            
+            if (!username) {
+                showError('recoveryUsernameError', 'Username required');
+                return;
+            }
+
+            // Check if user exists (in localStorage)
+            const formData = new FormData();
+            formData.append('action', 'login');
+            formData.append('username', username);
+            formData.append('password', '__check_only__');
+            
+            fetch(apiUrl, { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    // Generate recovery code (regardless of server response for local use)
+                    const code = generateRecoveryCode();
+                    const expiryTime = Date.now() + (30 * 60 * 1000); // 30 minutes from now
+                    
+                    recoveryData = {
+                        username: username,
+                        code: code,
+                        expiryTime: expiryTime,
+                        verified: false
+                    };
+                    
+                    // Store recovery data in localStorage temporarily
+                    localStorage.setItem(`recovery_${username}`, JSON.stringify(recoveryData));
+                    
+                    // Show the code to the user
+                    document.getElementById('recoveryCodeDisplay').textContent = code;
+                    
+                    // Show recovery code input step
+                    document.getElementById('recoveryStep1').style.display = 'none';
+                    document.getElementById('recoveryStep2').style.display = 'block';
+                    
+                    // Start countdown timer
+                    startRecoveryTimer(expiryTime);
+                })
+                .catch(err => {
+                    // Still allow recovery for local accounts
+                    const code = generateRecoveryCode();
+                    const expiryTime = Date.now() + (30 * 60 * 1000);
+                    
+                    recoveryData = {
+                        username: username,
+                        code: code,
+                        expiryTime: expiryTime,
+                        verified: false
+                    };
+                    
+                    localStorage.setItem(`recovery_${username}`, JSON.stringify(recoveryData));
+                    document.getElementById('recoveryCodeDisplay').textContent = code;
+                    document.getElementById('recoveryStep1').style.display = 'none';
+                    document.getElementById('recoveryStep2').style.display = 'block';
+                    startRecoveryTimer(expiryTime);
+                });
+        }
+
+        function startRecoveryTimer(expiryTime) {
+            if (recoveryTimerInterval) clearInterval(recoveryTimerInterval);
+            
+            const updateTimer = () => {
+                const now = Date.now();
+                const remaining = Math.max(0, expiryTime - now);
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                
+                document.getElementById('recoveryTimer').textContent = 
+                    `${minutes}:${String(seconds).padStart(2, '0')}`;
+                
+                if (remaining <= 0) {
+                    clearInterval(recoveryTimerInterval);
+                    document.getElementById('recoveryTimer').textContent = '0:00';
+                    showError('recoveryCodeError', 'Recovery code expired. Please start over.');
+                    setTimeout(() => cancelRecovery(), 2000);
+                }
+            };
+            
+            updateTimer();
+            recoveryTimerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function verifyRecoveryCode() {
+            if (!recoveryData) {
+                showError('recoveryCodeError', 'Recovery session expired');
+                return;
+            }
+
+            const enteredCode = document.getElementById('recoveryCode').value.trim().toUpperCase();
+            
+            if (enteredCode.length !== 6) {
+                showError('recoveryCodeError', 'Code must be 6 characters');
+                return;
+            }
+
+            if (Date.now() > recoveryData.expiryTime) {
+                showError('recoveryCodeError', 'Recovery code expired');
+                return;
+            }
+
+            if (enteredCode !== recoveryData.code) {
+                showError('recoveryCodeError', 'Incorrect code. Please try again.');
+                return;
+            }
+
+            // Code is valid, show password reset step
+            recoveryData.verified = true;
+            document.getElementById('recoveryStep2').style.display = 'none';
+            document.getElementById('recoveryStep3').style.display = 'block';
+            clearInterval(recoveryTimerInterval);
+        }
+
+        function resetPassword() {
+            if (!recoveryData || !recoveryData.verified) {
+                showError('recoveryPasswordError', 'Invalid recovery session');
+                switchAuthMode('login');
+                return;
+            }
+
+            const newPassword = document.getElementById('recoveryNewPassword').value;
+            const confirmPassword = document.getElementById('recoveryConfirmPassword').value;
+
+            if (!newPassword || !confirmPassword) {
+                showError('recoveryPasswordError', 'Both password fields required');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showError('recoveryPasswordError', 'Passwords do not match');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showError('recoveryPasswordError', 'Password must be at least 6 characters');
+                return;
+            }
+
+            // Update password in backend
+            const formData = new FormData();
+            formData.append('action', 'resetPassword');
+            formData.append('username', recoveryData.username);
+            formData.append('newPassword', newPassword);
+
+            fetch(apiUrl, { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    // Also update localStorage password (for local-only accounts)
+                    const users = JSON.parse(localStorage.getItem('_users') || '{}');
+                    if (users[recoveryData.username]) {
+                        users[recoveryData.username] = newPassword;
+                        localStorage.setItem('_users', JSON.stringify(users));
+                    }
+                    
+                    showSuccess('authSuccess', 'Password reset successful! Please login with your new password.');
+                    setTimeout(() => {
+                        // Clear recovery data
+                        localStorage.removeItem(`recovery_${recoveryData.username}`);
+                        recoveryData = null;
+                        // Switch back to login
+                        switchAuthMode('login');
+                    }, 1500);
+                })
+                .catch(err => {
+                    // Local password update
+                    const users = JSON.parse(localStorage.getItem('_users') || '{}');
+                    if (users[recoveryData.username]) {
+                        users[recoveryData.username] = newPassword;
+                        localStorage.setItem('_users', JSON.stringify(users));
+                    }
+                    
+                    showSuccess('authSuccess', 'Password reset successful! Please login with your new password.');
+                    setTimeout(() => {
+                        localStorage.removeItem(`recovery_${recoveryData.username}`);
+                        recoveryData = null;
+                        switchAuthMode('login');
+                    }, 1500);
+                });
+        }
+
+        function cancelRecovery() {
+            if (recoveryData) {
+                localStorage.removeItem(`recovery_${recoveryData.username}`);
+            }
+            recoveryData = null;
+            if (recoveryTimerInterval) clearInterval(recoveryTimerInterval);
+            document.getElementById('recoveryStep1').style.display = 'block';
+            document.getElementById('recoveryStep2').style.display = 'none';
+            document.getElementById('recoveryStep3').style.display = 'none';
+            document.getElementById('recoveryUsername').value = '';
+            document.getElementById('recoveryCode').value = '';
+            switchAuthMode('login');
+        }
+
+        function togglePasswordVisibility(event, inputId) {
+            const input = document.getElementById(inputId);
+            const button = event.target;
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '👁️‍🗨️';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
+        // Polygon animation background
+        class Polygon {
+            constructor(canvas) {
+                this.x = Math.random() * canvas.width;
+                this.y = -50;
+                this.width = Math.random() * 15 + 10;
+                this.height = Math.random() * 15 + 10;
+                this.speed = Math.random() * 0.3 + 0.15;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.01;
+                this.opacity = 0.25;
+                this.canvas = canvas;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotationSpeed;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                
+                const sides = 4;
+                for (let i = 0; i < sides; i++) {
+                    const angle = (i / sides) * Math.PI * 2;
+                    const px = Math.cos(angle) * this.width;
+                    const py = Math.sin(angle) * this.height;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const canvas = document.getElementById('loginPolygonCanvas');
+        const ctx = canvas.getContext('2d');
+        let polygons = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            if (polygons.length === 0) {
+                for (let i = 0; i < 50; i++) {
+                    polygons.push(new Polygon(canvas));
+                }
+            }
+        }
+
+        function animatePolygons() {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            polygons.forEach(p => {
+                p.update();
+                p.draw(ctx);
+                
+                if (p.y > canvas.height + 50) {
+                    p.y = -50;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+            
+            requestAnimationFrame(animatePolygons);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        animatePolygons();
+        
+        // Allow Enter key to submit
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const loginForm = document.getElementById('loginForm');
+                const recoveryForm = document.getElementById('recoveryForm');
+                
+                if (!loginForm.classList.contains('hidden-form')) {
+                    handleLogin();
+                } else if (!recoveryForm.classList.contains('hidden-form')) {
+                    const step1 = document.getElementById('recoveryStep1');
+                    const step2 = document.getElementById('recoveryStep2');
+                    if (step1.style.display !== 'none') {
+                        initiatePasswordRecovery();
+                    } else if (step2.style.display !== 'none') {
+                        verifyRecoveryCode();
+                    } else {
+                        resetPassword();
+                    }
+                } else {
+                    handleSignup();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
