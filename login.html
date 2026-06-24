@@ -400,7 +400,7 @@
     </div>
 
     <script>
-        const apiUrl = 'api.php';
+        const apiUrl = 'https://fmpgaming.chargeto.top/Push/api.php';
         
         // Check URL parameter to show signup form if needed, or pre-fill username
         window.addEventListener('DOMContentLoaded', function() {
@@ -531,7 +531,7 @@
                 })
                 .catch(err => {
                     console.error('Login error:', err);
-                    showError('loginUsernameError', 'Network error. Make sure api.php exists.');
+                    showError('loginUsernameError', 'Network error. Make sure https://fmpgaming.chargeto.top/Push/api.php exists.');
                 });
         }
 
@@ -597,7 +597,7 @@
                 })
                 .catch(err => {
                     console.error('Signup error:', err);
-                    showError('signupUsernameError', 'Network error. Make sure api.php exists.');
+                    showError('signupUsernameError', 'Network error. Make sure https://fmpgaming.chargeto.top/Push/api.php exists.');
                 });
         }
 
